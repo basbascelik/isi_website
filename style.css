@@ -178,7 +178,9 @@ code{overflow-wrap:anywhere;font-family:ui-monospace,Menlo,monospace;font-size:.
 .bubble .clock{font-family:var(--sans);font-weight:800;color:var(--yellow)}
 
 /* quote wall */
-.wall{display:grid;align-items:start;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.6rem}
+.wall{columns:3 300px;column-gap:1.8rem}
+.wall{padding-top:14px}
+.wall .note{break-inside:avoid;margin-bottom:1.8rem;display:inline-block;width:100%}
 .note{padding:1.4rem 1.3rem 1.1rem;border-radius:4px;box-shadow:0 10px 20px rgba(91,18,57,.15);position:relative;font-size:1.05rem;color:var(--ink)}
 .note::before{content:"";position:absolute;top:-12px;left:50%;width:80px;height:24px;margin-left:-40px;background:rgba(255,255,255,.6);transform:rotate(-3deg)}
 .note .who{display:block;font-family:var(--hand);font-size:1.3rem;margin-top:.6rem;color:var(--purple)}

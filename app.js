@@ -113,8 +113,9 @@ const wall = document.getElementById('wall');
 const colors = ['#fff38a', '#ffd1e8', '#e3d0ff', '#c9f1ff', '#d6ffd0', '#ffe0c2'];
 let html = QUOTES.map((q, i) => {
   const rot = ((i * 37) % 7 - 3) * 0.8;
-  return `<div class="note ${q.text.length > 120 ? 'big' : ''}" style="background:${colors[i % colors.length]};transform:rotate(${rot}deg)">
-    „${q.text.replace(/^„|”$/g, '')}”<span class="who">— ${q.author || 'kolega_inica'}</span></div>`;
+  const t = q.text.replace(/^„|”$/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+  return `<div class="note" style="background:${colors[i % colors.length]};transform:rotate(${rot}deg)">
+    „${t}”<span class="who">— ${q.author || 'kolega_inica'}</span></div>`;
 }).join('');
 if (!QUOTES.length) html = `<div class="note pending">📨 Poruke kolega stižu uskoro…</div>`;
 wall.innerHTML = html;
