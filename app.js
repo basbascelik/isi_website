@@ -2,7 +2,7 @@
 const grid = document.getElementById('grid');
 let current = [];
 function renderGrid(cat) {
-  current = cat === 'all' ? PHOTOS : PHOTOS.filter(p => p.cat === cat);
+  current = cat === 'all' ? PHOTOS : cat === 'top' ? PHOTOS.filter(p => p.top) : PHOTOS.filter(p => p.cat === cat);
   grid.innerHTML = current.map((p, i) => `
     <figure class="ph" data-i="${i}" style="animation-delay:${Math.min(i, 20) * 25}ms">
       <img src="img/thumbs/${p.src}" loading="lazy" alt="${p.cap}">
@@ -14,7 +14,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click
   b.classList.add('on');
   renderGrid(b.dataset.cat);
 }));
-renderGrid('all');
+renderGrid('top');
 
 /* lightbox */
 const lb = document.getElementById('lb'), lbImg = document.getElementById('lbImg'), lbCap = document.getElementById('lbCap');
@@ -37,79 +37,102 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') show(idx + 1);
 });
 
-/* ===== KVIZ ===== */
-const qc = document.getElementById('quiz');
-let qi = 0, score = 0;
-function renderQ() {
-  if (qi >= QUIZ.length) return renderEnd();
-  const q = QUIZ[qi];
-  qc.innerHTML = `
-    <div class="q-bar"><i style="width:${qi / QUIZ.length * 100}%"></i></div>
-    <div class="q-num">PITANJE ${qi + 1} / ${QUIZ.length}</div>
-    <div class="q-text">${q.q}</div>
-    <div class="q-opts">${q.a.map((a, i) => `<button data-i="${i}">${a}</button>`).join('')}</div>
-    <div class="q-fb"></div>`;
-  qc.querySelectorAll('.q-opts button').forEach(b => b.onclick = () => answer(+b.dataset.i, b));
+/* ===== FRIZURE ===== */
+const hImg = document.getElementById('hairImg'), hRange = document.getElementById('hairRange'), hStrip = document.getElementById('hairStrip');
+hRange.max = HAIR.length - 1;
+hStrip.innerHTML = HAIR.map((h, i) => `<button data-i="${i}" aria-label="${h.name}"><img src="img/thumbs/${h.src}" style="object-position:${h.pos}" loading="lazy" alt=""><span>v${i + 1}.0</span></button>`).join('');
+function setHair(i) {
+  const h = HAIR[i];
+  hImg.src = 'img/' + h.src; hImg.style.objectPosition = h.pos;
+  document.getElementById('hairVer').textContent = `v${i + 1}.0`;
+  document.getElementById('hairNum').textContent = `FRIZURA ${i + 1} / ${HAIR.length}`;
+  document.getElementById('hairName').textContent = h.name;
+  document.getElementById('hairCap').textContent = h.cap;
+  hRange.value = i;
+  hStrip.querySelectorAll('button').forEach((b, j) => b.classList.toggle('on', j === i));
 }
-function answer(i, btn) {
-  const q = QUIZ[qi], btns = qc.querySelectorAll('.q-opts button'), fb = qc.querySelector('.q-fb');
-  btns.forEach(b => b.disabled = true);
-  if (q.ok === -1) {            // trik pitanje: svi odgovori su pogrešni
-    btn.classList.add('wrong'); fb.textContent = q.no; score++;
-  } else if (i === q.ok) {
-    btn.classList.add('right'); fb.textContent = q.yes; score++; burst(6);
-  } else {
-    btn.classList.add('wrong'); btns[q.ok].classList.add('right'); fb.textContent = q.no;
-  }
-  const nx = document.createElement('button');
-  nx.className = 'btn q-next';
-  nx.textContent = qi === QUIZ.length - 1 ? 'Rezultati →' : 'Sledeće →';
-  nx.onclick = () => { qi++; renderQ(); };
-  qc.appendChild(nx);
-}
-function renderEnd() {
-  const pct = Math.round(score / QUIZ.length * 100);
-  const msg = pct === 100 ? 'Ti si definitivno iz Kancelarije 23. 💜'
-    : pct >= 60 ? 'Solidno! Isidora je ponosna (ali bi htela 100%).'
-    : 'Hm. Predlažemo dodatni upitnik. U Microsoft Forms-u, naravno.';
-  qc.innerHTML = `<div class="q-end">
-    <div class="q-num">REZULTAT</div>
-    <div class="big">${score}/${QUIZ.length}</div>
-    <p class="q-fb">${msg}</p>
-    <button class="btn q-next" id="again">Ponovo ↻</button></div>`;
-  document.getElementById('again').onclick = () => { qi = 0; score = 0; renderQ(); };
-  if (pct >= 60) burst(30);
-}
-renderQ();
+hRange.addEventListener('input', () => setHair(+hRange.value));
+hStrip.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setHair(+b.dataset.i); });
+setHair(0);
 
-/* ===== STONI FUDBAL ===== */
-const yes = document.getElementById('yesFoos'), area = document.getElementById('foosArea'), fmsg = document.getElementById('foosMsg');
-const dodges = ['Isidora je odbila poziv.', 'Ne, hvala. (opet)', 'Jel može tenis umesto toga? 🎾', 'Request denied: 403 Foosball Forbidden', 'Probaj sledeće godine.'];
-let d = 0;
-function dodge() {
-  const ar = area.getBoundingClientRect(), br = yes.getBoundingClientRect();
-  const x = (Math.random() - .5) * (ar.width - br.width), y = (Math.random() - .5) * (ar.height - br.height);
-  yes.style.left = x + 'px'; yes.style.top = y + 'px';
-  fmsg.textContent = dodges[d++ % dodges.length];
+/* ===== IsidoraGPT ===== */
+const cBody = document.getElementById('chatBody'), cForm = document.getElementById('chatForm'), cIn = document.getElementById('chatInput');
+const pick = a => a[Math.floor(Math.random() * a.length)];
+let lastReply = '';
+function addMsg(text, who) {
+  const m = document.createElement('div');
+  m.className = 'msg ' + who; m.textContent = text;
+  cBody.appendChild(m); cBody.scrollTop = cBody.scrollHeight;
+  return m;
 }
-yes.addEventListener('mouseenter', dodge);
-yes.addEventListener('click', e => { e.preventDefault(); dodge(); });
-document.getElementById('noFoos').onclick = () => { fmsg.textContent = 'Tačan odgovor! Ovo je prava Isidora. 💜'; burst(12); };
+function isidoraSays(input) {
+  const t = input.toLowerCase(), words = t.split(/[^a-zčćšđž0-9]+/i).filter(Boolean);
+  const hits = CHAT.filter(c => c.keys.some(k => k.includes(' ') ? t.includes(k) : words.some(w => w === k || (k.length > 3 && w.startsWith(k)))));
+  let pool = hits.length ? hits.flatMap(h => h.reply) : CHAT_FALLBACK;
+  if (pool.length > 1) pool = pool.filter(r => r !== lastReply);
+  return lastReply = pick(pool);
+}
+function send(text) {
+  text = text.trim(); if (!text) return;
+  addMsg(text, 'me'); cIn.value = '';
+  const typing = addMsg('Isidora kuca…', 'her typing');
+  setTimeout(() => { typing.remove(); addMsg(isidoraSays(text), 'her'); }, 700 + Math.random() * 900);
+}
+cForm.addEventListener('submit', e => { e.preventDefault(); send(cIn.value); });
+addMsg('Ćao! 👋 Kratko molim te, imam sastanak.', 'her');
+
+/* ===== TERMOSTAT ===== */
+const tR = document.getElementById('tRange'), tImg = document.getElementById('tImg');
+const TH = [
+  [16, 'cape', '🥶 KRITIČNO', 'Ko smanjuje grejanje po ovoj firmi...?'],
+  [19, 'cape', '🥶 HLADNO', 'Hladno mi je. (Ćebe je već na njoj.)'],
+  [22, 'chin', '😒 I DALJE HLADNO', 'Ostatak kancelarije skida džempere. Isidora traži drugi džemper.'],
+  [25, 'chin', '🤔 PODNOŠLJIVO', '25°C? To nije temperatura, to je emocionalno izazovan vazduh.'],
+  [27, 'coffee', '☕ SKORO', 'Može… uz čaj. Vrući. Dva.'],
+  [28, 'gown', '💜 IDEALNO', 'IDEALNO! Sad mogu da treniram modele. I da plešem paso doble.'],
+  [31, 'excited', '🔥 RAJ', 'Kolege se tope. Isidora tek ulazi u flow.'],
+  [34, 'jump1', '🏖️ MORE MODE', 'Konačno temperatura kao more koje priznaje. Odmor odobren!'],
+];
+function setT(v) {
+  let row = TH[0]; TH.forEach(t => { if (v >= t[0]) row = t; });
+  document.getElementById('tVal').textContent = v;
+  document.getElementById('tMsg').textContent = row[3];
+  document.getElementById('tBadge').textContent = row[2];
+  const src = 'img/stickers/' + row[1] + '.webp';
+  if (!tImg.src.endsWith(src)) { tImg.classList.remove('swap'); void tImg.offsetWidth; tImg.src = src; tImg.classList.add('swap'); }
+  const p = (v - 16) / 20;
+  tR.style.setProperty('--p', p * 100 + '%');
+  document.querySelector('.thermo-read').style.color = `hsl(${220 + p * 110},75%,48%)`;
+  if (v === 28 && !setT.done) { burst(14); setT.done = true; }
+}
+tR.addEventListener('input', () => setT(+tR.value));
+setT(21);
 
 /* ===== PORUKE ===== */
 const wall = document.getElementById('wall');
 const colors = ['#fff38a', '#ffd1e8', '#e3d0ff', '#c9f1ff', '#d6ffd0', '#ffe0c2'];
-const fresh = QUOTES.filter(q => q.tag !== 'arhiva'), archive = QUOTES.filter(q => q.tag === 'arhiva');
-let html = '';
-if (!fresh.length) html += `<div class="note pending">📨 Ovde stižu poruke kolega…<br>uskoro!</div>`;
-[...fresh, ...archive].forEach((q, i) => {
+let html = QUOTES.map((q, i) => {
   const rot = ((i * 37) % 7 - 3) * 0.8;
-  html += `<div class="note ${q.text.length > 90 && q.tag !== 'arhiva' ? 'big' : ''}" style="background:${colors[i % colors.length]};transform:rotate(${rot}deg)">
-    ${q.tag === 'arhiva' ? '<span class="tag">kviz 2026</span>' : ''}
-    „${q.text.replace(/^„|”$/g, '')}”
-    <span class="who">— ${q.author || 'kolega_inica'}</span></div>`;
-});
+  return `<div class="note ${q.text.length > 120 ? 'big' : ''}" style="background:${colors[i % colors.length]};transform:rotate(${rot}deg)">
+    „${q.text.replace(/^„|”$/g, '')}”<span class="who">— ${q.author || 'kolega_inica'}</span></div>`;
+}).join('');
+if (!QUOTES.length) html = `<div class="note pending">📨 Poruke kolega stižu uskoro…</div>`;
 wall.innerHTML = html;
+
+/* ===== SAT ===== */
+function tick() {
+  const d = new Date(), hh = String(d.getHours()).padStart(2, '0'), mm = String(d.getMinutes()).padStart(2, '0');
+  document.querySelectorAll('.clock').forEach(c => c.textContent = `${hh}:${mm}`);
+  const cs = document.querySelector('.clock-s'); if (cs) cs.textContent = ':' + String(d.getSeconds()).padStart(2, '0');
+  const h = d.getHours() + d.getMinutes() / 60, n = document.getElementById('clockNote');
+  if (!n) return;
+  n.textContent = h < 11 ? 'Pre 11h. Ako je sastanak — protest je opravdan.'
+    : h < 13 ? 'Uskoro ručak. Isidora je već gladna.'
+    : h < 17 ? 'Radno vreme. Jira tiketi — done.'
+    : h < 22 ? 'Posle posla. Piće sa ekipom, pa na ples?'
+    : 'Kasno je. Isidora bi rekla: „Hladno mi je, idem kući.”';
+}
+tick(); setInterval(tick, 1000);
 
 /* ===== SRCA ===== */
 function burst(n) {
